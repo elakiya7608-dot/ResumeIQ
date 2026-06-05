@@ -3,7 +3,7 @@ def get_keywords():
         'AI', 'ML', 'LLM', 'RAG', 'Prompt Engineering',
         'Fine Tuning', 'Deep Learning',
         'Python', 'TensorFlow',
-        'ChatGPT', 'Generative AI','Data Science', 'Data Analysis',
+        'ChatGPT', 'Generative AI', 
         'Pandas', 'NumPy', 'Matplotlib', 'Seaborn',
         'Scikit-learn', 'Keras', 'PyTorch',
         'NLP', 'Computer Vision',

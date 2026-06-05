@@ -12,7 +12,7 @@ def main():
     resume_text = extract_text_from_pdf(file_path)
 
     if not resume_text:
-        print("❌ Failed to read resume.")
+        print("❌ Failed to read resume.")  
         return
 
     print("✅ Resume text extracted\n")
