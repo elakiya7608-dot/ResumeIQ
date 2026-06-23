@@ -13,7 +13,7 @@ import os
 import tempfile
 from typing import Tuple
 
-from resume import extract_text_from_pdf, extract_text_from_docx
+from resume import extract_text_from_pdf,extract_text_from_docx
 from ocr_helper import extract_text_from_scanned_pdf, extract_text_from_docx_images
 
 
@@ -30,11 +30,11 @@ RESUME_KEYWORDS = [
     "resume", "curriculum vitae",
 
     # ── Profile / Objective section headings ────────────────────────────────
-    "career objective", "professional summary", "personal statement",
+    "career objective","summary","profile","professional summary", "personal statement",
     "about me", "career summary", "professional profile",
 
     # ── Work Experience section headings ────────────────────────────────────
-    "work experience", "professional experience",
+    "work experience", "professional experience","experience"
     "employment history", "work history", "career history",
     "internship", "job title", "designation",
     "key contributions", "full-time", "part-time", "freelance",
@@ -52,11 +52,11 @@ RESUME_KEYWORDS = [
 
     # ── Certifications / Training ────────────────────────────────────────────
     "certifications", "certified", "bootcamp",
-    "online courses", "professional development",
+    "online courses", "professional develpment",
     "accreditation", "licensure",
 
     # ── Projects ─────────────────────────────────────────────────────────────
-    "personal projects", "academic projects",
+    "personal projects", "academic projects","projects",
     "capstone project", "open source",
 
     # ── Awards / Honours ─────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ RESUME_KEYWORDS = [
 # HARD-BLOCK phrases — reject immediately if found
 # ---------------------------------------------------------------------------
 HARD_BLOCK_PHRASES = [
-    " business reporting",
+    " business",
     "sbr service desk",
     "taxpayer declaration",
     "tax return",
@@ -97,7 +97,7 @@ HARD_BLOCK_PHRASES = [
     "common business implementation",
     "online services for dsps",
     "terms and conditions",
-    "privacy policy",
+    "privacy policies",
     "memorandum of understanding",
     "this document and its attachments are official",
     "for further information raise an enquiry",
@@ -116,7 +116,7 @@ HARD_BLOCK_PHRASES = [
     "instruction manual",
     "policy document",
     "implementation guide",
-    "meeting minutes",
+    "meeting minutess",
 ]
 
 # Thresholds

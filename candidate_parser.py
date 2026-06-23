@@ -49,7 +49,8 @@ def extract_name(text):
         "developer",
         "intern",
         "marketing executive",
-        "manager"
+        "manager",
+        "professional summary"
     ]
 
     HEADINGS = [

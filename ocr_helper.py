@@ -292,3 +292,4 @@ def extract_text_from_docx_images(docx_path):
         print("DOCX OCR ERROR:", e)
 
         return ""
+    

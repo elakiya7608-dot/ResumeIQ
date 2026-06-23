@@ -301,7 +301,7 @@ st.markdown("""
 
 
 # =====================================================
-# CUSTOM EXCEPTION
+# CUSTOM EXCEPTIONS
 # =====================================================
 class EmptyResumeError(Exception):
     pass
@@ -345,7 +345,7 @@ def score_label(score):
 
 
 # =====================================================
-# SIDEBAR
+# SIDEBAR 
 # =====================================================
 with st.sidebar:
     st.markdown("## 🤖 ResumeIQ")
@@ -358,7 +358,7 @@ with st.sidebar:
         keywords, scores candidates, and provides
         AI-driven feedback.
 
-        - 📄 PDF & DOCX support
+        - 📄 PDF & DOCX Support 
         - 🔍 OCR for scanned documents
         - 🤖 Google Gemini AI feedback
         - 📊 Multi-resume comparison
@@ -471,8 +471,6 @@ if submit:
         # ── Read file bytes ONCE ──
         file_bytes = uploaded_file.read()
 
-        
-
         # =====================================================
         # STEP 1 — RESUME VALIDATION
         # =====================================================
@@ -485,7 +483,6 @@ if submit:
             reason = validation_details.get("reason")
 
             # ── HARD REJECT: too long or official/legal doc ──────────────
-            # These will never be resumes — show the red banner and skip
             if reason in ("too_long", "hard_block"):
                 st.markdown("<hr class='styled-divider'>", unsafe_allow_html=True)
                 st.markdown(
@@ -501,9 +498,6 @@ if submit:
                 continue
 
             # ── SOFT REJECT: empty file or low keyword count ─────────────
-            # Route to AI so the user gets a polite, helpful explanation
-            # Set empty_resume flag and pre-call AI feedback now,
-            # then fall through to the display section below
             if reason in ("empty", "not_resume"):
                 empty_resume = True
                 any_valid_resume_processed = True
@@ -518,20 +512,17 @@ if submit:
                             "with actual text content."
                         )
                     }
-                # Skip all extraction steps — jump straight to display
                 score  = 0
                 matched = []
                 missing = []
                 is_shortlisted = False
 
-                # ---- display header ----
                 st.markdown("<hr class='styled-divider'>", unsafe_allow_html=True)
                 st.markdown(
                     f'<h2 style="color:#1e293b; margin-bottom:0.25rem;">📄 {uploaded_file.name}</h2>',
                     unsafe_allow_html=True
                 )
 
-                # ---- metrics row (all zero) ----
                 m1, m2, m3, m4 = st.columns(4)
                 with m1:
                     st.markdown(
@@ -560,7 +551,6 @@ if submit:
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                # ---- AI feedback tab only ----
                 tab1, tab2, tab3 = st.tabs([
                     "📊 Results",
                     "👤 Candidate Info",
@@ -586,7 +576,6 @@ if submit:
                         unsafe_allow_html=True
                     )
 
-                # ---- track in results ----
                 results.append({
                     "Resume Name":      uploaded_file.name,
                     "Candidate Name":   "Not Found",
@@ -596,7 +585,7 @@ if submit:
                     "Status":           "Not Shortlisted",
                 })
 
-                continue   # done with this file — move to next
+                continue
 
         any_valid_resume_processed = True
 
@@ -612,7 +601,7 @@ if submit:
             continue
 
         # =====================================================
-        # STEP 2 — MAIN ANALYSIS
+        # STEP 2 - MAIN ANALYSIS
         # =====================================================
         try:
             with st.spinner(f"🔍 Analyzing {uploaded_file.name}..."):
@@ -656,10 +645,6 @@ if submit:
 
                     if len(resume_text.strip()) == 0:
                         raise EmptyResumeError("Resume content is empty after extraction")
-
-                else:
-                    show_error(f"❌ Unsupported file format: {uploaded_file.name}")
-                    continue
 
                 # --- Keyword Extraction ---
                 try:
@@ -768,7 +753,7 @@ if submit:
         ])
 
         # --------------------------------------------------
-        # TAB 1 — RESULTS
+        # TAB 1 - RESULTS
         # --------------------------------------------------
         with tab1:
             st.markdown('<p class="section-title">Keyword Analysis</p>', unsafe_allow_html=True)
@@ -797,6 +782,96 @@ if submit:
                 else:
                     st.success("🎉 No missing keywords!")
 
+            # =====================================================
+            # PIE CHART - MATCHED VS MISSING SKILLS
+            # =====================================================
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('<p class="section-title">📊 Keyword Match Distribution</p>', unsafe_allow_html=True)
+
+            if matched or missing:
+                import plotly.graph_objects as go
+
+                pie_labels = ["Matched ", "Missing "]
+                pie_values = [len(matched), len(missing)]
+                pie_colors = ["#22c55e", "#ef4444"]
+
+                # Build hover text listing each keyword
+                matched_hover = "<br>".join(matched) if matched else "None"
+                missing_hover = "<br>".join(missing) if missing else "None"
+                pie_hover = [
+                    f"<b>Matched ({len(matched)})</b><br>{matched_hover}",
+                    f"<b>Missing ({len(missing)})</b><br>{missing_hover}",
+                ]
+
+                fig_pie = go.Figure(
+                    go.Pie(
+                        labels=pie_labels,
+                        values=pie_values,
+                        marker=dict(
+                            colors=pie_colors,
+                            line=dict(color="#ffffff", width=2),
+                        ),
+                        hole=0.45,
+                        hovertemplate="%{customdata}<extra></extra>",
+                        customdata=pie_hover,
+                        textinfo="label+percent",
+                        textfont=dict(size=13, family="Segoe UI"),
+                        pull=[0.04, 0.04],
+                    )
+                )
+
+                fig_pie.update_layout(
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
+                    height=380,
+                    margin=dict(t=40, b=40, l=20, r=20),
+                    font=dict(family="Segoe UI", size=13),
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=-0.15,
+                        xanchor="center",
+                        x=0.5,
+                        font=dict(size=13),
+                    ),
+                    annotations=[
+                        dict(
+                            text=(
+                                f"<b>{score}%</b><br>Match"
+                            ),
+                            x=0.5, y=0.5,
+                            font=dict(size=16, family="Segoe UI", color="#1e293b"),
+                            showarrow=False,
+                        )
+                    ],
+                )
+
+                # Center the pie chart nicely
+                pie_col1, pie_col2, pie_col3 = st.columns([1, 2, 1])
+                with pie_col2:
+                    st.plotly_chart(fig_pie, use_container_width=True)
+
+                # Summary note below the chart
+                total_kw = len(matched) + len(missing)
+                if total_kw > 0:
+                    match_pct = round((len(matched) / total_kw) * 100, 1)
+                    st.markdown(
+                        f'<p style="text-align:center; color:#64748b; font-size:0.88rem; margin-top:-0.5rem;">'
+                        f'Out of <b>{total_kw}</b> total keywords, '
+                        f'<b style="color:#16a34a">{len(matched)} matched</b> '
+                        f'({match_pct}%) and '
+                        f'<b style="color:#dc2626">{len(missing)} are missing</b> '
+                        f'({round(100 - match_pct, 1)}%).</p>',
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.info("No keyword data available to display chart.")
+
+            # =====================================================
+            # END PIE CHART
+            # =====================================================
+
             st.markdown("<br>", unsafe_allow_html=True)
 
             with st.expander("📃 View Extracted Resume Text", expanded=False):
@@ -809,7 +884,7 @@ if submit:
                 )
 
         # --------------------------------------------------
-        # TAB 2 — CANDIDATE INFO
+        # TAB 2 - CANDIDATE INFO
         # --------------------------------------------------
         with tab2:
             st.markdown('<p class="section-title">Candidate Profile</p>', unsafe_allow_html=True)
@@ -866,11 +941,10 @@ if submit:
                 )
 
         # --------------------------------------------------
-        # TAB 3 — AI FEEDBACK
+        # TAB 3 - AI FEEDBACK
         # --------------------------------------------------
         with tab3:
 
-            # Determine which shape came back from api_helper
             feedback_status = feedback.get("status") if isinstance(feedback, dict) else None
             is_invalid      = feedback_status in ("invalid", "error")
             is_valid_result = isinstance(feedback, dict) and not is_invalid
@@ -963,7 +1037,7 @@ if submit:
         })
 
     # =====================================================
-    # FINAL SUMMARY — only shown when ≥1 valid resume was processed
+    # FINAL SUMMARY
     # =====================================================
     if not any_valid_resume_processed:
         st.markdown("<hr class='styled-divider'>", unsafe_allow_html=True)
@@ -984,7 +1058,7 @@ if submit:
     df.insert(0, "Rank", range(1, len(df) + 1))
 
     # =====================================================
-    # LEADERBOARD + BAR CHART + TABLE (only if 2+ valid resumes)
+    # LEADERBOARD + BARCHART + TABLE (only if 2+ valid resumes)
     # =====================================================
     if len(results) > 1:
 
@@ -1029,7 +1103,7 @@ if submit:
                         <div style="display:flex; align-items:center; gap:0.75rem;">
                             <span style="font-size:1.6rem;">{medal}</span>
                             <div>
-                                <div style="color:#f1f5f9; font-weight:700; font-size:1rem;">
+                                <div style="color:#000000; font-weight:700; font-size:1rem;">
                                     Rank {rank} — {name}
                                 </div>
                                 <div style="color:#94a3b8; font-size:0.78rem; margin-top:1px;">
