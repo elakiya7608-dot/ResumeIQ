@@ -155,7 +155,6 @@ def extract_text_from_scanned_pdf(pdf_path):
         images = convert_from_path(
             pdf_path,
             dpi=400,
-            poppler_path=r"c:\Users\RAVICHANDRAN\poppler-24.08.0\Library\bin"
         )
 
         print(f"Total pages found: {len(images)}")
