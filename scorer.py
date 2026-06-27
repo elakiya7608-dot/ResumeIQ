@@ -1,4 +1,10 @@
 import re
+import nltk
+
+nltk.download("punkt")
+nltk.download("punkt_tab")   # Needed for newer NLTK versions
+nltk.download("stopwords")
+nltk.download("wordnet")
 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
