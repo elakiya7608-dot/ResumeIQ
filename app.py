@@ -611,7 +611,7 @@ if submit:
                     try:
                         import io as _io
                         resume_text = extract_text_from_pdf(_io.BytesIO(file_bytes))
-                        st.write("✅ Step 1: PDF text extracted")
+                        
                     except Exception:
                         show_error(f"❌ Failed to extract text from PDF: {uploaded_file.name}")
                         continue
@@ -651,7 +651,7 @@ if submit:
                 try:
                     keywords = get_keywords()
                     matched, missing = extract_keywords(resume_text, keywords)
-                    ("✅ Step 3: Keyword extraction completed")
+                    
                 except Exception:
                     show_error(f"❌ Keyword extraction failed for {uploaded_file.name}")
                     continue
@@ -659,16 +659,16 @@ if submit:
                 # --- Score ---
                 try:
                     score = calculate_score(matched, keywords)
-                    st.write("✅ Step 4: Score calculated")
+                    
                 except Exception:
                     show_error(f"❌ Score calculation failed for {uploaded_file.name}")
                     continue
 
                 # --- AI Feedback ---
                 try:
-                    st.write("⏳ Step 5: Calling Gemini API...")
+                    
                     feedback = get_ai_feedback(resume_text, matched, score)
-                    st.write("✅ Step 6: Gemini response received")
+                    
                 except Exception:
                     feedback = "⚠️ AI feedback service is currently unavailable."
                     show_warning(f"AI feedback generation failed for {uploaded_file.name}")
