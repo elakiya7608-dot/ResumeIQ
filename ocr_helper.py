@@ -1,18 +1,15 @@
 from pdf2image import convert_from_path
-from paddleocr import PaddleOCR
+import easyocr
 import cv2
 import zipfile
 import tempfile
 import os
 
 # =====================================================
-# INITIALIZE PADDLE OCR
+# INITIALIZE EASY OCR
 # =====================================================
 
-ocr = PaddleOCR(
-    use_angle_cls=True,
-    lang='en'
-)
+reader = easyocr.Reader(['en'])
 
 # =====================================================
 # IMAGE PREPROCESSING
@@ -88,10 +85,9 @@ def run_ocr(image_path):
 
             return ""
 
-        print("Running PaddleOCR...")
+        print("Running EasyOCR...")
 
-
-        result = ocr.predict(processed_image)
+        result = reader.readtext(processed_image)
         print("OCR RESULT:")
         print(result)
 
@@ -111,26 +107,20 @@ def run_ocr(image_path):
         # LOOP THROUGH OCR RESULT SAFELY
         # =================================================
 
-        for page in result:
+        for line in result:
 
-            if page is None:
+            try:
+
+                # EasyOCR returns (bbox, text, confidence)
+                text = line[1]
+
+                extracted_text += text + " "
+
+            except Exception as line_error:
+
+                print("LINE ERROR:", line_error)
 
                 continue
-
-            for line in page:
-
-                try:
-
-                    # PaddleOCR text extraction
-                    text = line[1][0]
-
-                    extracted_text += text + " "
-
-                except Exception as line_error:
-
-                    print("LINE ERROR:", line_error)
-
-                    continue
 
         return extracted_text.strip()
 
@@ -288,4 +278,3 @@ def extract_text_from_docx_images(docx_path):
         print("DOCX OCR ERROR:", e)
 
         return ""
-    
