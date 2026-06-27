@@ -119,7 +119,7 @@ def extract_keywords(resume_text, keyword_list):
 
 
 # =====================================================
-# SCORE CALCULATION
+# SCORE CALCULATION 
 # =====================================================
 def calculate_score(matched, total):
 

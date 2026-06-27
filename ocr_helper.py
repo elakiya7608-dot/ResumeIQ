@@ -90,11 +90,8 @@ def run_ocr(image_path):
 
         print("Running PaddleOCR...")
 
-        result = ocr.ocr(
-            processed_image,
-            cls=True
-        )
 
+        result = ocr.predict(processed_image)
         print("OCR RESULT:")
         print(result)
 
@@ -246,20 +243,20 @@ def extract_text_from_docx_images(docx_path):
                 print(f"\nSTEP 2: Processing image {i+1}")
 
                 # =============================================
-                # EXTRACT IMAGE TEMPORARILY
+                # EXTRACT IMAGE TEMPORARILY 
                 # =============================================
 
                 temp_dir = tempfile.gettempdir()
 
                 extracted_path = docx.extract(
-                    image_file,
+                    image_file,        
                     temp_dir
                 )
 
                 print(f"Extracted Image: {extracted_path}")
 
                 # =============================================
-                # RUN OCR
+                # RUN OCR          
                 # =============================================
 
                 extracted_text = run_ocr(
@@ -272,7 +269,7 @@ def extract_text_from_docx_images(docx_path):
                 full_text += extracted_text + "\n"
 
                 # =============================================
-                # DELETE EXTRACTED IMAGE
+                # DELETE EXTRACTED IMAGE 
                 # =============================================
 
                 try:
