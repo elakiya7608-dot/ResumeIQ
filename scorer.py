@@ -1,11 +1,21 @@
 import re
 import nltk
 
-nltk.download("punkt")
-nltk.download("punkt_tab")   # Needed for newer NLTK versions
-nltk.download("stopwords")
-nltk.download("wordnet")
+def download_nltk():
+    resources = {
+        "punkt": "tokenizers/punkt",
+        "punkt_tab": "tokenizers/punkt_tab",
+        "stopwords": "corpora/stopwords",
+        "wordnet": "corpora/wordnet",
+    }
 
+    for name, path in resources.items():
+        try:
+            nltk.data.find(path)
+        except LookupError:
+            nltk.download(name)
+
+download_nltk()
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
