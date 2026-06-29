@@ -13,7 +13,7 @@ import os
 import tempfile
 from typing import Tuple
 
-from resume import extract_text_from_pdf,extract_text_from_docx
+from resume import extract_text_from_pdf, extract_text_from_docx
 from ocr_helper import extract_text_from_scanned_pdf, extract_text_from_docx_images
 
 
@@ -30,17 +30,17 @@ RESUME_KEYWORDS = [
     "resume", "curriculum vitae",
 
     # ── Profile / Objective section headings ────────────────────────────────
-    "career objective","summary","profile","professional summary", "personal statement",
+    "career objective", "summary", "profile", "professional summary", "personal statement",
     "about me", "career summary", "professional profile",
 
     # ── Work Experience section headings ────────────────────────────────────
-    "work experience", "professional experience","experience"
+    "work experience", "professional experience", "experience",
     "employment history", "work history", "career history",
     "internship", "job title", "designation",
     "key contributions", "full-time", "part-time", "freelance",
 
     # ── Education section headings ───────────────────────────────────────────
-    "educational qualification", "academic background",
+    "educational qualification", "academic background", "qualification",
     "bachelor", "master", "phd", "doctorate", "diploma",
     "graduated", "graduation", "gpa", "cgpa",
     "coursework", "thesis", "dissertation",
@@ -52,11 +52,11 @@ RESUME_KEYWORDS = [
 
     # ── Certifications / Training ────────────────────────────────────────────
     "certifications", "certified", "bootcamp",
-    "online courses", "professional develpment",
+    "online courses", "professional development",
     "accreditation", "licensure",
 
     # ── Projects ─────────────────────────────────────────────────────────────
-    "personal projects", "academic projects","projects",
+    "personal projects", "academic projects", "projects",
     "capstone project", "open source",
 
     # ── Awards / Honours ─────────────────────────────────────────────────────
@@ -83,54 +83,35 @@ RESUME_KEYWORDS = [
     "i hereby declare", "i certify that",
 ]
 
-# ---------------------------------------------------------------------------
-# HARD-BLOCK phrases — reject immediately if found
-# ---------------------------------------------------------------------------
-HARD_BLOCK_PHRASES = [
-    " business",
-    "sbr service desk",
-    "taxpayer declaration",
-    "tax return",
-    "abn registration",
-    "business activity statement",
-    "goods and services tax",
-    "common business implementation",
-    "online services for dsps",
-    "terms and conditions",
-    "privacy policies",
-    "memorandum of understanding",
-    "this document and its attachments are official",
-    "for further information raise an enquiry",
-    "balance sheet",
-    "profit and loss",
-    "income statement",
-    "annual report",
-    "financial statement",
-    "purchase order",
-    "patient diagnosis",
-    "prescription",
-    "doi:",
-    "issn:",
-    "literature review",
-    "user manual",
-    "instruction manual",
-    "policy document",
-    "implementation guide",
-    "meeting minutess",
+# ── Education keywords for scoring ──────────────────────────────────────────
+EDUCATION_KEYWORDS = [
+    "bachelor", "master", "phd", "doctorate", "diploma",
+    "graduated", "graduation", "gpa", "cgpa", "degree",
+    "university", "college", "institute", "school",
+    "educational qualification", "academic background",
+    "coursework", "thesis", "dissertation",
+]
+
+# ── Skills keywords for scoring ─────────────────────────────────────────────
+SKILLS_KEYWORDS = [
+    "technical skills", "soft skills", "core competencies",
+    "key skills", "areas of expertise", "proficiencies",
+    "programming languages", "languages known", "skills",
+    "tools", "technologies", "frameworks",
 ]
 
 # Thresholds
 MIN_RESUME_KEYWORD_HITS = 3
 MIN_TEXT_LENGTH         = 100
 MAX_TEXT_LENGTH         = 50_000
+MIN_SCORE               = 4     # minimum score out of 8 to pass validation
 
 # ---------------------------------------------------------------------------
 # Reason codes — used by app.py to decide how to handle each rejection
 # ---------------------------------------------------------------------------
-REASON_EMPTY        = "empty"          # blank / unreadable — route to AI
-REASON_TOO_LONG     = "too_long"       # definitely not a resume — hard reject
-REASON_HARD_BLOCK   = "hard_block"     # official/legal doc — hard reject
-REASON_NOT_RESUME   = "not_resume"     # low keyword count — route to AI
+REASON_EMPTY        = "empty"        # blank / unreadable — route to AI
+REASON_TOO_LONG     = "too_long"     # definitely not a resume — hard reject
+REASON_NOT_RESUME   = "not_resume"   # low keyword count or score — route to AI
 
 
 # ---------------------------------------------------------------------------
@@ -183,13 +164,6 @@ def _extract_text(file_bytes: bytes, filename: str) -> str:
 # Core validation helpers
 # ---------------------------------------------------------------------------
 
-def _check_hard_block(text_lower: str):
-    for phrase in HARD_BLOCK_PHRASES:
-        if phrase in text_lower:
-            return phrase
-    return None
-
-
 def _count_resume_keyword_hits(text_lower: str) -> Tuple[int, list]:
     hits = []
     for kw in RESUME_KEYWORDS:
@@ -199,13 +173,65 @@ def _count_resume_keyword_hits(text_lower: str) -> Tuple[int, list]:
     return len(hits), hits
 
 
-def _has_contact_info(text_lower: str) -> bool:
+def _has_email(text_lower: str) -> bool:
     email_pattern = r'[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}'
+    return bool(re.search(email_pattern, text_lower))
+
+
+def _has_phone(text_lower: str) -> bool:
     phone_pattern = r'(\+?\d[\d\s\-().]{7,}\d)'
-    return bool(
-        re.search(email_pattern, text_lower) or
-        re.search(phone_pattern, text_lower)
-    )
+    return bool(re.search(phone_pattern, text_lower))
+
+
+def _has_education(text_lower: str) -> bool:
+    for kw in EDUCATION_KEYWORDS:
+        pattern = r'\b' + re.escape(kw) + r'\b'
+        if re.search(pattern, text_lower):
+            return True
+    return False
+
+
+def _has_skills(text_lower: str) -> bool:
+    for kw in SKILLS_KEYWORDS:
+        pattern = r'\b' + re.escape(kw) + r'\b'
+        if re.search(pattern, text_lower):
+            return True
+    return False
+
+
+def _compute_score(text_lower: str) -> Tuple[int, dict]:
+    """
+    Score the document out of 8 based on presence of key resume signals:
+      +2  email detected
+      +2  phone detected
+      +2  education section/keywords detected
+      +2  skills section/keywords detected
+    """
+    score = 0
+    breakdown = {
+        "email":     False,
+        "phone":     False,
+        "education": False,
+        "skills":    False,
+    }
+
+    if _has_email(text_lower):
+        score += 2
+        breakdown["email"] = True
+
+    if _has_phone(text_lower):
+        score += 2
+        breakdown["phone"] = True
+
+    if _has_education(text_lower):
+        score += 2
+        breakdown["education"] = True
+
+    if _has_skills(text_lower):
+        score += 2
+        breakdown["skills"] = True
+
+    return score, breakdown
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +250,6 @@ def validate_resume(file_bytes: bytes, filename: str) -> Tuple[bool, str, dict]:
                          "empty"      → pass to AI for polite response
                          "not_resume" → pass to AI for polite response
                          "too_long"   → hard reject (not a resume)
-                         "hard_block" → hard reject (official/legal doc)
     """
 
     text       = _extract_text(file_bytes, filename)
@@ -234,9 +259,9 @@ def validate_resume(file_bytes: bytes, filename: str) -> Tuple[bool, str, dict]:
         "filename":              filename,
         "text_length":           len(text_lower),
         "resume_keywords_found": [],
-        "has_contact_info":      False,
-        "blocked_by":            None,
-        "reason":                None,          # ← NEW: always set on rejection
+        "score":                 0,
+        "score_breakdown":       {},
+        "reason":                None,
     }
 
     # --- 1. Empty / unreadable → let AI respond politely ---
@@ -258,20 +283,7 @@ def validate_resume(file_bytes: bytes, filename: str) -> Tuple[bool, str, dict]:
             details,
         )
 
-    # --- 3. Hard-block: official / legal / government doc → hard reject ---
-    blocked_phrase = _check_hard_block(text_lower)
-    if blocked_phrase:
-        details["blocked_by"] = blocked_phrase
-        details["reason"]     = REASON_HARD_BLOCK
-        return (
-            False,
-            "❌ This document does not appear to be a resume. "
-            "It looks like an official, legal, or government document. "
-            "Please upload your personal resume or CV in PDF or DOCX format.",
-            details,
-        )
-
-    # --- 4. Too few resume keywords → let AI respond politely ---
+    # --- 3. Resume keyword check ---
     resume_hits, resume_found = _count_resume_keyword_hits(text_lower)
     details["resume_keywords_found"] = resume_found
 
@@ -285,12 +297,26 @@ def validate_resume(file_bytes: bytes, filename: str) -> Tuple[bool, str, dict]:
             details,
         )
 
-    # --- 5. All checks passed ---
-    has_contact            = _has_contact_info(text_lower)
-    details["has_contact_info"] = has_contact
+    # --- 4. Scoring check: email, phone, education, skills ---
+    score, score_breakdown = _compute_score(text_lower)
+    details["score"]           = score
+    details["score_breakdown"] = score_breakdown
 
+    if score < MIN_SCORE:
+        missing = [field for field, found in score_breakdown.items() if not found]
+        details["reason"] = REASON_NOT_RESUME
+        return (
+            False,
+            f"The document does not appear to be a resume. "
+            f"Validation score: {score}/8 (minimum required: {MIN_SCORE}/8). "
+            f"Missing sections: {', '.join(missing)}.",
+            details,
+        )
+
+    # --- 5. All checks passed ---
     return (
         True,
-        f"✅ Document validated as a resume ({resume_hits} resume keyword(s) detected).",
+        f"✅ Document validated as a resume "
+        f"({resume_hits} resume keyword(s) detected, score: {score}/8).",
         details,
     )
